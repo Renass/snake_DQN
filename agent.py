@@ -10,10 +10,11 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as T
 
-BATCH_SIZE = 100
+BATCH_SIZE = 2000
 GAMMA = 0.99
 n_actions = 4
 MEMORY_SIZE = 100000
+LR = 10e-5
 
 def get_screen(settings,snake,apple):
     
@@ -105,8 +106,8 @@ class DQN(nn.Module):
 
     def __init__(self, inputs, outputs, device):
         super(DQN, self).__init__()
-        self.head1 = nn.Linear(inputs, 512)
-        self.head2 = nn.Linear(512, 512)
+        self.head1 = nn.Linear(inputs, 1024)
+        self.head2 = nn.Linear(1024, 512)
         self.head = nn.Linear(512, outputs)
 
 
@@ -126,7 +127,7 @@ def create_agent(settings,device,MEMORY_SIZE):
     
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
-    optimizer = optim.Adam(policy_net.parameters(), lr=1e-5)
+    optimizer = optim.Adam(policy_net.parameters(), lr=LR)
     memory = ReplayMemory(MEMORY_SIZE)
     return policy_net, target_net, optimizer, memory
 
