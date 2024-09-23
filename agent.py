@@ -11,10 +11,10 @@ import torchvision
 import torchvision.transforms as T
 
 BATCH_SIZE = 2000
-GAMMA = 0.99
+GAMMA = 0.9
 n_actions = 4
-MEMORY_SIZE = 100000
-LR = 10e-5
+MEMORY_SIZE = 10000
+LR = 10e-4
 
 def get_screen(settings,snake,apple):
     
@@ -38,7 +38,7 @@ def get_screen(settings,snake,apple):
 
 
 
-def optimize_model(memory,device,policy_net,target_net,optimizer,snake):
+def optimize_model(memory,device,policy_net,target_net,optimizer,snake, update, scheduler):
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
@@ -69,12 +69,14 @@ def optimize_model(memory,device,policy_net,target_net,optimizer,snake):
     loss1 = round(loss.item(),3)
     #print('loss = '+str(loss1))
     
-    # Optimize the model
-    optimizer.zero_grad()
     loss.backward()
-    for param in policy_net.parameters():
-        param.grad.data.clamp_(-1, 1)
-    optimizer.step()
+    if update:
+        for param in policy_net.parameters():
+            param.grad.data.clamp_(-1, 1)
+        optimizer.step()
+        scheduler.step()
+        optimizer.zero_grad()
+
     
     return loss1
 
@@ -106,14 +108,16 @@ class DQN(nn.Module):
 
     def __init__(self, inputs, outputs, device):
         super(DQN, self).__init__()
-        self.head1 = nn.Linear(inputs, 1024)
-        self.head2 = nn.Linear(1024, 512)
+        self.head1 = nn.Linear(inputs, 512)
+        #self.head2 = nn.Linear(5, 1024)
+        #self.head3 = nn.Linear(1024, 512)
         self.head = nn.Linear(512, outputs)
 
 
     def forward(self, x):
-        x = F.relu(self.head1(x))
-        x = F.relu(self.head2(x))
+        x = F.gelu(self.head1(x))
+        #x = F.gelu(self.head2(x))
+        #x = F.gelu(self.head3(x))
         x = self.head(x)
         #print(x)
         return x
@@ -129,16 +133,10 @@ def create_agent(settings,device,MEMORY_SIZE):
     target_net.eval()
     optimizer = optim.Adam(policy_net.parameters(), lr=LR)
     memory = ReplayMemory(MEMORY_SIZE)
-    return policy_net, target_net, optimizer, memory
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99) 
+    return policy_net, target_net, optimizer, memory, scheduler
 
-def select_action(state,policy_net):
-    with torch.no_grad():
-        w = policy_net(state)
-        w = w - w.min()
-        w = (w / w.sum())[0]
-        #w = w**3
-        #action = random.choices([0,1,2,3], weights=w, k=1)
-        action = np.argmax(w)
-        action = torch.tensor(action)
-        action = action.view(1,1) 
-        return action
+#def select_action(state,policy_net):
+#    action = F.softmax(policy_net(state), dim=1)
+#    print('here', action)
+#    return action
