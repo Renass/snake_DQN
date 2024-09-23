@@ -18,7 +18,7 @@ def new_game(settings):
 
 
     
-def check_events(settings,snake,apple,action):
+def check_events(settings,snake,apple,action, imaginary):
     x = snake.body[0][0]
     y = snake.body[0][1]
 
@@ -31,14 +31,15 @@ def check_events(settings,snake,apple,action):
                 snake.body.pop(-1)
             elif [x+1,y]==[apple.x,apple.y]:
                 snake.body.insert(0,[x+1,y])
-                apple.new_apple(settings,snake)
-                snake.reward=50
+                if imaginary == False:
+                    apple.new_apple(settings,snake)
+                snake.reward=10
             elif [x+1,y] in snake.body or x==settings.field_size[0]-1:
                 snake.dead=True
                 snake.reward=-10
                     
                 
-        if action[0][0] == 1:
+        elif action[0][0] == 1:
             if [x-1,y] not in snake.body and [x-1,y]!=[apple.x,apple.y] and x>0:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-1-apple.x)**2+(y-apple.y)**2)**0.5
                 #snake.reward = -1 
@@ -46,13 +47,14 @@ def check_events(settings,snake,apple,action):
                 snake.body.pop(-1)
             elif [x-1,y]==[apple.x,apple.y]:
                 snake.body.insert(0,[x-1,y])
-                apple.new_apple(settings,snake)
-                snake.reward=50
+                if imaginary==False:
+                    apple.new_apple(settings,snake)
+                snake.reward=10
             elif [x-1,y] in snake.body or x==0:
                 snake.dead=True
                 snake.reward=-10
                     
-        if action[0][0] == 2:
+        elif action[0][0] == 2:
             if [x,y-1] not in snake.body and [x,y-1]!=[apple.x,apple.y] and y>0:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-apple.x)**2+(y-1-apple.y)**2)**0.5
                 #snake.reward = -1
@@ -60,13 +62,14 @@ def check_events(settings,snake,apple,action):
                 snake.body.pop(-1)
             elif [x,y-1]==[apple.x,apple.y]:
                 snake.body.insert(0,[x,y-1])
-                apple.new_apple(settings,snake)
-                snake.reward=50
+                if imaginary==False:
+                    apple.new_apple(settings,snake)
+                snake.reward=10
             elif [x,y-1] in snake.body or y==0:
                 snake.dead=True
                 snake.reward=-10
                     
-        if action[0][0] == 3:
+        elif action[0][0] == 3:
             if [x,y+1] not in snake.body and [x,y+1]!=[apple.x,apple.y] and y<settings.field_size[1]-1:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-apple.x)**2+(y+1-apple.y)**2)**0.5
                 #snake.reward = -1
@@ -74,11 +77,15 @@ def check_events(settings,snake,apple,action):
                 snake.body.pop(-1)
             elif [x,y+1]==[apple.x,apple.y]:
                 snake.body.insert(0,[x,y+1])
-                apple.new_apple(settings,snake)
-                snake.reward=50
+                if imaginary==False:
+                    apple.new_apple(settings,snake)
+                snake.reward=10
             elif [x,y+1] in snake.body or y==settings.field_size[1]-1:
                 snake.dead=True
                 snake.reward=-10
+        else:
+            print('Check events: NO CORRECT ACTION!')
+    
                     
 
 

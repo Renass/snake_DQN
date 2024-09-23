@@ -11,29 +11,22 @@ import torchvision
 import torchvision.transforms as T
 
 BATCH_SIZE = 2000
-GAMMA = 0.9
+GAMMA = 0.95
 n_actions = 4
-MEMORY_SIZE = 10000
-LR = 10e-4
+MEMORY_SIZE = 2000
+LR = 10e-7
+SCHEDULER = False
 
-def get_screen(settings,snake,apple):
-    
-    screen = torch.zeros(100)-1
-    screen[0] = apple.x
-    screen[1] = apple.y
+def get_state(snake,apple):
+    state = torch.zeros((30, 30))
+    state[apple.x, apple.y] = 0.5
         
-    for index,i in enumerate(snake.body):
-        screen[2*index+2] = i[0]
-        screen[2*index+3] = i[1]
-        if index==48:
-            break
+    for body_segment in snake.body:
+        state[body_segment[0], body_segment[1]]= 0.75
     
-    #Resize, and add a batch dimension (BCHW)
-    #resize = T.Compose([T.ToPILImage(),T.Resize((30,30), interpolation=T.InterpolationMode.BICUBIC),T.ToTensor()])
-    #screen = resize(screen)
-    
-    screen=screen.unsqueeze(0)
-    return screen
+    state[snake.x, snake.y] = 1
+    state=state.unsqueeze(0)
+    return state
 
 
 
@@ -42,39 +35,34 @@ def optimize_model(memory,device,policy_net,target_net,optimizer,snake, update, 
     if len(memory) < BATCH_SIZE:
         return
     transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
+
     batch = Transition(*zip(*transitions))
-    state_batch = torch.cat(batch.state)
-    action_batch = torch.cat(batch.action)
-    reward_batch = torch.cat(batch.reward)
-    
-    # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-    # columns of actions taken. These are the actions which would've been taken
-    # for each batch state according to policy_net
+    state_batch = torch.stack(batch.state).to(device)
+    action_batch = torch.cat(batch.action).to(device)
+    next_state_batch = torch.stack(batch.next_state).to(device)
+    reward_batch = torch.cat(batch.reward).to(device)
+
+    #print('here', torch.min(reward_batch), torch.max(reward_batch))
     state_action_values = policy_net(state_batch).gather(1, action_batch)
-    # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net; selecting their best reward with max(1)[0].
-    # This is merged based on the mask, such that we'll have either the expected
-    # state value or 0 in case the state was final.
+
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values = target_net(state_batch).max(1)[0].detach()
+    next_state_values = target_net(next_state_batch).max(1)[0].detach()
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
     criterion = nn.MSELoss()
+    #print('here', state_action_values[0], expected_state_action_values.unsqueeze(1)[0])
     loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
     loss1 = round(loss.item(),3)
     #print('loss = '+str(loss1))
     
     loss.backward()
     if update:
-        for param in policy_net.parameters():
-            param.grad.data.clamp_(-1, 1)
+        #for param in policy_net.parameters():
+        #    param.grad.data.clamp_(-1, 1)
         optimizer.step()
-        scheduler.step()
+        if SCHEDULER:
+            scheduler.step()
         optimizer.zero_grad()
 
     
@@ -106,27 +94,29 @@ class ReplayMemory():
 
 class DQN(nn.Module):
 
-    def __init__(self, inputs, outputs, device):
+    def __init__(self):
         super(DQN, self).__init__()
-        self.head1 = nn.Linear(inputs, 512)
-        #self.head2 = nn.Linear(5, 1024)
-        #self.head3 = nn.Linear(1024, 512)
-        self.head = nn.Linear(512, outputs)
-
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
+        self.fc1 = nn.Linear(32 * 7 * 7, 750)
+        self.fc2 = nn.Linear(750, 4)
+        self.gelu = nn.GELU()   
 
     def forward(self, x):
-        x = F.gelu(self.head1(x))
-        #x = F.gelu(self.head2(x))
-        #x = F.gelu(self.head3(x))
-        x = self.head(x)
-        #print(x)
-        return x
+        # x shape [batch, channel, w, h]
+        x = self.pool(self.gelu(self.conv1(x)))  # Conv + ReLU + Pooling
+        x = self.pool(self.gelu(self.conv2(x)))  # Conv + ReLU + Pooling
+        x = x.view(x.size(0), -1)  # Flatten
+        x = self.gelu(self.fc1(x))  # Fully connected layer
+        x = self.fc2(x)  # Output layer
+        return x  # Q-values for each action
     
     
 def create_agent(settings,device,MEMORY_SIZE):
    
-    policy_net = DQN(100, n_actions,device).to(device)
-    target_net = DQN(100, n_actions,device).to(device)
+    policy_net = DQN().to(device)
+    target_net = DQN().to(device)
 
     
     target_net.load_state_dict(policy_net.state_dict())
