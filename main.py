@@ -14,7 +14,7 @@ import copy
 
 from torch.utils.tensorboard import SummaryWriter
 
-LOAD_WEIGHTS = True
+LOAD_WEIGHTS = False
 LOAD_WEIGHTS_NAME = 'snake.pt'
 SAVE_WEIGHTS = True
 SAVE_WEIGHTS_NAME = 'snake.pt' 
@@ -26,7 +26,7 @@ GRAD_ACCUMULATION_RATE = 1
 #How many training steps goes untill target_net copies policy_net
 SYNC_POLICIES_RATE = 100
 #Perform actions by naive solver instead of ai
-CHEAT_DEMO = False
+CHEAT_DEMO = True
 
 settings = Settings()
 snake,apple = gf.new_game(settings)
