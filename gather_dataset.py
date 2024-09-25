@@ -16,7 +16,7 @@ This script based on main.py
 '''
 
 SCREEN_INIT = True
-DATASET_LENGTH = 1000
+DATASET_LENGTH = 10000
 #Perform actions by naive solver instead of ai
 CHEAT_DEMO = True
 

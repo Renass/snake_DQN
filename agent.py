@@ -24,7 +24,7 @@ def get_state(snake,apple):
     for body_segment in snake.body:
         state[body_segment[0], body_segment[1]]= 0.75
     
-    state[snake.x, snake.y] = 1
+    state[snake.body[0][0], snake.body[0][1]] = 1
     state=state.unsqueeze(0)
     return state
 
