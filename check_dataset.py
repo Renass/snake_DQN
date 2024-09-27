@@ -2,7 +2,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
-FILENAME = '/home/renas/pythonprogv2/snake_DQN/datasets/dataset_2024_09_26_13:40.h5'
+FILENAME = '/home/renas/pythonprogv2/snake_DQN/datasets/dataset_2024_09_28_06:59.h5'
 
 def load_and_visualize_dataset(filename, index=0):
     # Open the HDF5 file
@@ -17,22 +17,26 @@ def load_and_visualize_dataset(filename, index=0):
         return
     
     # Extract the state and next_state at the specified index
-    state = states[index].squeeze()  # Remove batch/channel dimensions if present
-    next_state = next_states[index].squeeze()
+    state = states[index]  # Shape: [3, 30, 30] (channels first)
+    next_state = next_states[index]  # Shape: [3, 30, 30] (channels first)
 
-    # Plot the state and next_state as images
+    # Transpose to [30, 30, 3] for plotting (channels last for matplotlib)
+    state = np.transpose(state, (1, 2, 0))
+    next_state = np.transpose(next_state, (1, 2, 0))
+
+    # Plot the state and next_state as RGB images
     plt.figure(figsize=(10, 5))
 
     # Plot the current state
     plt.subplot(1, 2, 1)
     plt.title("State")
-    plt.imshow(state, cmap='gray', interpolation='nearest')
+    plt.imshow(state.astype(np.uint8))  # Convert to uint8 for displaying as an image
     plt.axis('off')  # Hide axis for better visualization
 
     # Plot the next state
     plt.subplot(1, 2, 2)
     plt.title("Next State")
-    plt.imshow(next_state, cmap='gray', interpolation='nearest')
+    plt.imshow(next_state.astype(np.uint8))  # Convert to uint8 for displaying as an image
     plt.axis('off')
 
     # Display the images
@@ -40,5 +44,5 @@ def load_and_visualize_dataset(filename, index=0):
 
 if __name__ == '__main__':
     index = 1  # Change index to view different state-next_state pairs
-
     load_and_visualize_dataset(FILENAME, index=index)
+

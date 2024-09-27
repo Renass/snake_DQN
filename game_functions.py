@@ -1,6 +1,6 @@
 import pygame
 import random
-import keyboard as k
+import torch
 
 def run_window(settings):
     pygame.init()
@@ -103,7 +103,7 @@ def update_screen(screen,settings, snake,apple):
         #screen.blit(text_dead, (settings.width-250,200))
     num_segments = len(snake.body)
     for i, body in enumerate(snake.body):
-        intensity = 1.0 - 0.4 * (i / num_segments)
+        intensity = 1.0 - (i / num_segments)
         color = (int(255 * intensity), int(242 * intensity), 0)
         #pygame.draw.rect(screen,(255,242,0),(settings.kvadra*body[0],settings.kvadra*body[1],settings.kvadra,settings.kvadra))
         pygame.draw.rect(screen, color, 
@@ -147,5 +147,25 @@ class Apple():
             self.y = random.randint(0,settings.field_size[1]-1)
             if [self.x,self.y] not in snake.body:
                 self.l=1
+
+
+def get_state(snake,apple):
+    state = torch.zeros((30, 30, 3))
+    #Backgroud filed
+    state[:, :, 1] = 100
+    #Apple
+    state[apple.x, apple.y] = torch.tensor([255, 0, 0]) 
+
+    #Body with gradient intensity
+    num_segments = len(snake.body)    
+    for i, body_segment in enumerate(snake.body):
+        intensity = 1.0 - (i / num_segments)
+        color = torch.tensor([255 * intensity, 242 * intensity, 0])
+        state[body_segment[0], body_segment[1]] = color
+    
+    #Snake head
+    state[snake.body[0][0], snake.body[0][1]] = torch.tensor([0, 0, 255])
+    state = state.permute(2,0,1)
+    return state
             
         

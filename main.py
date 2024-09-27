@@ -53,7 +53,7 @@ while run:
     if (EPOCHS == epoch) and (SCREEN_INIT==False):
         run = False
     epoch+=1
-    state = ag.get_state(snake, apple)
+    state = gf.get_state(snake, apple)
     
     if SCREEN_INIT:
         keys = pygame.key.get_pressed()
@@ -115,10 +115,10 @@ while run:
                 m = reward
                 action_by_cheat = i
             #print(reward)
-            next_state = ag.get_state(imaginary_snake, apple)
+            next_state = gf.get_state(imaginary_snake, apple)
             memory.push(state, torch.tensor([[i]]), next_state, reward)
 
-        if CHEAT_DEMO:
+        if CHEAT_DEMO and not keys[pygame.K_LCTRL]:
             gf.check_events(settings,snake,apple, torch.tensor([[action_by_cheat]]).to(device), imaginary=False)
         else:
             gf.check_events(settings,snake,apple,action, imaginary=False)
@@ -129,7 +129,7 @@ while run:
             snake,apple = gf.new_game(settings)
         if SCREEN_INIT:
             gf.update_screen(screen,settings,snake,apple)
-        next_state = ag.get_state(snake, apple)
+        next_state = gf.get_state(snake, apple)
         #memory.push(state, action, next_state, reward)
         update = False
         if epoch % GRAD_ACCUMULATION_RATE == 0:
