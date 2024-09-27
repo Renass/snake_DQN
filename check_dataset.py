@@ -2,7 +2,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
-FILENAME = '/home/renas/pythonprogv2/snake_DQN/datasets/dataset_2024_09_25_04:24.h5'
+FILENAME = '/home/renas/pythonprogv2/snake_DQN/datasets/dataset_2024_09_26_13:40.h5'
 
 def load_and_visualize_dataset(filename, index=0):
     # Open the HDF5 file

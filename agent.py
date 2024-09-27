@@ -19,12 +19,14 @@ SCHEDULER = False
 
 def get_state(snake,apple):
     state = torch.zeros((30, 30))
-    state[apple.x, apple.y] = 0.5
-        
-    for body_segment in snake.body:
-        state[body_segment[0], body_segment[1]]= 0.75
+    state[apple.x, apple.y] = 0.3
+
+    num_segments = len(snake.body)    
+    for i, body_segment in enumerate(snake.body):
+        intensity = 1.0 - 0.4*(i / num_segments)
+        state[body_segment[0], body_segment[1]]= intensity
     
-    state[snake.body[0][0], snake.body[0][1]] = 1
+    #state[snake.body[0][0], snake.body[0][1]] = 1
     state=state.unsqueeze(0)
     return state
 

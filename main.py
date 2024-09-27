@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 LOAD_WEIGHTS = False
 LOAD_WEIGHTS_NAME = 'snake.pt'
-SAVE_WEIGHTS = True
+SAVE_WEIGHTS = False
 SAVE_WEIGHTS_NAME = 'snake.pt' 
 SCREEN_INIT = True
 # Training epochs for no_gui mode, when (SCREEN_INIT==False)

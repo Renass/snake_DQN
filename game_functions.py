@@ -101,8 +101,15 @@ def update_screen(screen,settings, snake,apple):
     screen.blit(text_score, (settings.width-100,100))
     #if snake.dead==True:
         #screen.blit(text_dead, (settings.width-250,200))
-    for body in snake.body:
-        pygame.draw.rect(screen,(255,242,0),(settings.kvadra*body[0],settings.kvadra*body[1],settings.kvadra,settings.kvadra))
+    num_segments = len(snake.body)
+    for i, body in enumerate(snake.body):
+        intensity = 1.0 - 0.4 * (i / num_segments)
+        color = (int(255 * intensity), int(242 * intensity), 0)
+        #pygame.draw.rect(screen,(255,242,0),(settings.kvadra*body[0],settings.kvadra*body[1],settings.kvadra,settings.kvadra))
+        pygame.draw.rect(screen, color, 
+                         (settings.kvadra * body[0], 
+                          settings.kvadra * body[1], 
+                          settings.kvadra, settings.kvadra))
     pygame.draw.rect(screen,(0,0,255),(settings.kvadra*snake.body[0][0],settings.kvadra*snake.body[0][1],settings.kvadra,settings.kvadra))
     pygame.draw.rect(screen,(255,0,0),(settings.kvadra*apple.x,settings.kvadra*apple.y,settings.kvadra,settings.kvadra))
     pygame.display.update()
