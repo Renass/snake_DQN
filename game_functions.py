@@ -1,6 +1,8 @@
 import pygame
 import random
 import torch
+import copy
+
 
 def run_window(settings):
     pygame.init()
@@ -167,5 +169,24 @@ def get_state(snake,apple):
     state[snake.body[0][0], snake.body[0][1]] = torch.tensor([0, 0, 255])
     state = state.permute(2,0,1)
     return state
-            
+
+
+def imaginary_step(snake, apple, current_depth, current_return, settings, device):
+    action_by_cheat = None
+    current_depth -=1
+    m= current_return - 100
+    for i in (0,2,1,3):
+        imaginary_snake = copy.deepcopy(snake)
+        check_events(settings,imaginary_snake,apple,torch.tensor([[i]]).to(device), imaginary=True)
+        current_return1 = current_return + torch.tensor([imaginary_snake.reward],device=device)
+        #print('depth: ', current_depth, 'return: ', current_return1)
+        if current_depth >0:
+            _, current_return1 = imaginary_step(imaginary_snake, apple, current_depth, current_return1, settings=settings, device=device) 
+        
+        if current_return1 > m:
+            m = current_return1
+            action_by_cheat = i 
+
+    return action_by_cheat, m
+
         
