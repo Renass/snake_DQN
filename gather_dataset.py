@@ -9,6 +9,7 @@ import copy
 import h5py
 from datetime import datetime
 import os
+import time
 
 '''
 Program for gathering (state-action-reward-next_state) dataset 
@@ -18,11 +19,14 @@ This script based on main.py
 SCREEN_INIT = True
 
 #Unlimited steps demo in case of GATHER=False
-GATHER = True
+GATHER = False
 
-DATASET_LENGTH = 10000
+DATASET_LENGTH = 100000
+
 #Perform actions by naive solver instead of ai
 CHEAT_DEMO = True
+# naive solver considering future state depth
+LOOK_AHEAD_STEPS = 2
 DEVICE = 'cuda:0'
 
 if __name__ == '__main__':
@@ -95,15 +99,22 @@ if __name__ == '__main__':
                     next_state = gf.get_state(imaginary_snake, apple)
                     memory.push(state, torch.tensor([i]), next_state, reward)
 
-            action_by_cheat, r = gf.imaginary_step(snake, apple, current_depth = 2, current_return=0, settings=settings, device=DEVICE)
+            action_by_cheat, r = gf.imaginary_step(snake, apple, current_depth = LOOK_AHEAD_STEPS, max_depth=LOOK_AHEAD_STEPS, current_return=0, settings=settings, device=DEVICE)
 
             if CHEAT_DEMO:
-                gf.check_events(settings,snake,apple, torch.tensor([[action_by_cheat]]).to(device), imaginary=False)
+                try:
+                    gf.check_events(settings,snake,apple, torch.tensor([[action_by_cheat]]).to(device), imaginary=False)
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+                    print('debug here')
+                    gf.pause_game()
             else:
                 gf.check_events(settings,snake,apple,action, imaginary=False)
             reward = torch.tensor([snake.reward],device=device)
             #print('Real reward: ', reward)
             if snake.dead:
+                print('snake dead')
+                gf.pause_game()
                 snake,apple = gf.new_game(settings)
             if SCREEN_INIT:
                 gf.update_screen(screen,settings,snake,apple)

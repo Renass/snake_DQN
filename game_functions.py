@@ -2,6 +2,8 @@ import pygame
 import random
 import torch
 import copy
+from collections import deque
+import time
 
 
 def run_window(settings):
@@ -171,22 +173,88 @@ def get_state(snake,apple):
     return state
 
 
-def imaginary_step(snake, apple, current_depth, current_return, settings, device):
+def imaginary_step(snake, apple, current_depth, max_depth, current_return, settings, device):
     action_by_cheat = None
     current_depth -=1
     m= current_return - 100
+    action_reward_acsess = []
+    #print('depth: ', current_depth)
     for i in (0,2,1,3):
         imaginary_snake = copy.deepcopy(snake)
         check_events(settings,imaginary_snake,apple,torch.tensor([[i]]).to(device), imaginary=True)
         current_return1 = current_return + torch.tensor([imaginary_snake.reward],device=device)
         #print('depth: ', current_depth, 'return: ', current_return1)
-        if current_depth >0:
-            _, current_return1 = imaginary_step(imaginary_snake, apple, current_depth, current_return1, settings=settings, device=device) 
-        
-        if current_return1 > m:
-            m = current_return1
-            action_by_cheat = i 
+        if imaginary_snake.reward > -10:
+            field_accessible, acsess_part = check_field_acessibility(imaginary_snake)                
+            if (current_depth >0):
+                _, current_return1 = imaginary_step(imaginary_snake, apple, current_depth, max_depth, current_return1, settings=settings, device=device) 
 
+            action_reward_acsess.append((i, current_return1, acsess_part))
+            if field_accessible:
+                if current_return1 > m:
+                    m = current_return1
+                    action_by_cheat = i
+    if (action_by_cheat == None) and (current_depth==max_depth-1):
+        print('additional search: go where more field acsess')
+        max_acsess=-1
+        for item in action_reward_acsess:
+            #print(item)
+            action, reward, acsess = item
+            #print(acsess)
+            if acsess > max_acsess:
+                max_acsess = acsess
+                action_by_cheat = action
+        #print(max_acsess)
+        #pause_game()
+
+    #if action_by_cheat == None:
+    #    print('cant choose any action')
     return action_by_cheat, m
 
+
+def check_field_acessibility(snake, target_acsess = 0.8):
+    visited = [[False for _ in range(30)] for _ in range(30)]
+    accessible_cells = 0
+    total_free_cells = 900 - len(snake.body)
+    required_accessible_cells = total_free_cells * target_acsess
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    #head_x, head_y = snake.body[0]
+    queue = deque([snake.body[0]])
+    #visited[snake.body[0][0]][snake.body[0][1]] = True
+
+    for x,y in snake.body:
+        visited[x][y] = True
+
+    
+    while queue:
+        x, y = queue.popleft()
+        accessible_cells += 1
+        
+        if accessible_cells >= required_accessible_cells:
+            return True, target_acsess
+        
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 30 and 0 <= ny < 30 and not visited[nx][ny]:
+                visited[nx][ny] = True
+                queue.append((nx, ny))
+    return accessible_cells >= required_accessible_cells, accessible_cells/total_free_cells
+    
+
+def pause_game():
+    paused = True
+    print("Game paused. Press SPACE to continue...")
+    
+    while paused:
+        # Check for events
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                # If space bar is pressed, unpause the game
+                if event.key == pygame.K_SPACE:
+                    paused = False
+                    print("Game resumed.")
+            # Allow the user to quit the game
+            elif event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
         
