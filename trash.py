@@ -1,42 +1,40 @@
 from collections import deque
 
-def check_field_accessibility(snake):
-    # Initialize a visited matrix for the 30x30 grid
-    visited = [[False for _ in range(30)] for _ in range(30)]
-    accessible_cells = 0
-    total_free_cells = 900 - len(snake.body)  # Total free cells excluding snake's body
-    required_accessible_cells = total_free_cells * 0.8  # 80% of free cells
+def check_head_to_tail_accessibility(snake):
+    """
+    This function checks if the snake's head can reach the snake's tail 
+    without hitting its own body or other obstacles.
+    """
+    visited = [[False for _ in range(30)] for _ in range(30)]  # 30x30 grid
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Possible directions (up, down, left, right)
     
-    # Directions for moving up, down, left, and right
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    head = snake.body[0]  # Snake's head (starting point)
+    tail = snake.body[-1]  # Snake's tail (goal point)
     
-    # The snake's head is the starting point for BFS
-    head_x, head_y = snake.body[0]
-    queue = deque([(head_x, head_y)])  # Queue starts from the snake's head
-    visited[head_x][head_y] = True
+    queue = deque([head])  # Initialize BFS queue with the head position
+    visited[head[0]][head[1]] = True  # Mark the head position as visited
     
-    # Mark snake's body as visited to avoid counting them as accessible
-    for x, y in snake.body:
+    # Mark snake's body (excluding the head and tail) as visited to avoid crossing over itself
+    for x, y in snake.body[1:-1]:  # Exclude the head and tail from being marked as visited
         visited[x][y] = True
-    
-    # BFS to explore accessible cells
+
+    # BFS loop to find if a path exists from head to tail
     while queue:
         x, y = queue.popleft()
-        accessible_cells += 1
-        
-        # Early stopping if we have already found enough accessible cells
-        if accessible_cells >= required_accessible_cells:
+
+        # If we reach the tail, return True
+        if (x, y) == tail:
             return True
         
         # Explore the neighboring cells
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
             if 0 <= nx < 30 and 0 <= ny < 30 and not visited[nx][ny]:
-                visited[nx][ny] = True  # Mark as visited
+                visited[nx][ny] = True
                 queue.append((nx, ny))
     
-    # Return whether the accessible cells are >= required accessible cells
-    return accessible_cells >= required_accessible_cells
+    # If we finish BFS without reaching the tail, return False
+    return False
 
 
 

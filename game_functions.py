@@ -28,7 +28,7 @@ def check_events(settings,snake,apple,action, imaginary):
 
     if snake.dead==False:
         if action[0][0] == 0:
-            if [x+1,y] not in snake.body and [x+1,y]!=[apple.x,apple.y] and x<settings.field_size[0]-1:
+            if [x+1,y] not in snake.body[:-1] and [x+1,y]!=[apple.x,apple.y] and x<settings.field_size[0]-1:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x+1-apple.x)**2+(y-apple.y)**2)**0.5
                 #snake.reward = -1
                 snake.body.insert(0,[x+1,y])
@@ -38,13 +38,13 @@ def check_events(settings,snake,apple,action, imaginary):
                 if imaginary == False:
                     apple.new_apple(settings,snake)
                 snake.reward=10
-            elif [x+1,y] in snake.body or x==settings.field_size[0]-1:
+            elif [x+1,y] in snake.body[:-1] or x==settings.field_size[0]-1:
                 snake.dead=True
                 snake.reward=-10
                     
                 
         elif action[0][0] == 1:
-            if [x-1,y] not in snake.body and [x-1,y]!=[apple.x,apple.y] and x>0:
+            if [x-1,y] not in snake.body[:-1] and [x-1,y]!=[apple.x,apple.y] and x>0:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-1-apple.x)**2+(y-apple.y)**2)**0.5
                 #snake.reward = -1 
                 snake.body.insert(0,[x-1,y])
@@ -54,12 +54,12 @@ def check_events(settings,snake,apple,action, imaginary):
                 if imaginary==False:
                     apple.new_apple(settings,snake)
                 snake.reward=10
-            elif [x-1,y] in snake.body or x==0:
+            elif [x-1,y] in snake.body[:-1] or x==0:
                 snake.dead=True
                 snake.reward=-10
                     
         elif action[0][0] == 2:
-            if [x,y-1] not in snake.body and [x,y-1]!=[apple.x,apple.y] and y>0:
+            if [x,y-1] not in snake.body[:-1] and [x,y-1]!=[apple.x,apple.y] and y>0:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-apple.x)**2+(y-1-apple.y)**2)**0.5
                 #snake.reward = -1
                 snake.body.insert(0,[x,y-1])
@@ -69,12 +69,12 @@ def check_events(settings,snake,apple,action, imaginary):
                 if imaginary==False:
                     apple.new_apple(settings,snake)
                 snake.reward=10
-            elif [x,y-1] in snake.body or y==0:
+            elif [x,y-1] in snake.body[:-1] or y==0:
                 snake.dead=True
                 snake.reward=-10
                     
         elif action[0][0] == 3:
-            if [x,y+1] not in snake.body and [x,y+1]!=[apple.x,apple.y] and y<settings.field_size[1]-1:
+            if [x,y+1] not in snake.body[:-1] and [x,y+1]!=[apple.x,apple.y] and y<settings.field_size[1]-1:
                 snake.reward = ((x-apple.x)**2+(y-apple.y)**2)**0.5 - ((x-apple.x)**2+(y+1-apple.y)**2)**0.5
                 #snake.reward = -1
                 snake.body.insert(0,[x,y+1])
@@ -84,7 +84,7 @@ def check_events(settings,snake,apple,action, imaginary):
                 if imaginary==False:
                     apple.new_apple(settings,snake)
                 snake.reward=10
-            elif [x,y+1] in snake.body or y==settings.field_size[1]-1:
+            elif [x,y+1] in snake.body[:-1] or y==settings.field_size[1]-1:
                 snake.dead=True
                 snake.reward=-10
         else:
@@ -177,34 +177,48 @@ def imaginary_step(snake, apple, current_depth, max_depth, current_return, setti
     action_by_cheat = None
     current_depth -=1
     m= current_return - 100
+    m1= current_return - 100
     action_reward_acsess = []
     #print('depth: ', current_depth)
     for i in (0,2,1,3):
         imaginary_snake = copy.deepcopy(snake)
         check_events(settings,imaginary_snake,apple,torch.tensor([[i]]).to(device), imaginary=True)
+        tale_acsess = check_head_to_tail_accessibility(imaginary_snake)
         current_return1 = current_return + torch.tensor([imaginary_snake.reward],device=device)
         #print('depth: ', current_depth, 'return: ', current_return1)
         if imaginary_snake.reward > -10:
             field_accessible, acsess_part = check_field_acessibility(imaginary_snake)                
+            
             if (current_depth >0):
                 _, current_return1 = imaginary_step(imaginary_snake, apple, current_depth, max_depth, current_return1, settings=settings, device=device) 
 
-            action_reward_acsess.append((i, current_return1, acsess_part))
-            if field_accessible:
-                if current_return1 > m:
-                    m = current_return1
-                    action_by_cheat = i
+            action_reward_acsess.append((i, current_return1, acsess_part, tale_acsess))
+            #if field_accessible:
+            #    if current_return1 > m:
+            #        m = current_return1
+            #        action_by_cheat = i
+
     if (action_by_cheat == None) and (current_depth==max_depth-1):
-        print('additional search: go where more field acsess')
+        print('additional search1: follow the tale')
+        for item in action_reward_acsess:
+            action, reward, _, tale_acsess = item
+            print(tale_acsess)
+            if tale_acsess:
+                if reward > m1:
+                    m1 = reward
+                    action_by_cheat = action
+
+    if (action_by_cheat == None) and (current_depth==max_depth-1):
+        print('additional search2: go where more field acsess')
         max_acsess=-1
         for item in action_reward_acsess:
             #print(item)
-            action, reward, acsess = item
+            action, reward, acsess, _ = item
             #print(acsess)
             if acsess > max_acsess:
                 max_acsess = acsess
                 action_by_cheat = action
-        #print(max_acsess)
+        print(max_acsess)
         #pause_game()
 
     #if action_by_cheat == None:
@@ -212,7 +226,7 @@ def imaginary_step(snake, apple, current_depth, max_depth, current_return, setti
     return action_by_cheat, m
 
 
-def check_field_acessibility(snake, target_acsess = 0.8):
+def check_field_acessibility(snake, target_acsess = 1.0):
     visited = [[False for _ in range(30)] for _ in range(30)]
     accessible_cells = 0
     total_free_cells = 900 - len(snake.body)
@@ -257,4 +271,39 @@ def pause_game():
             elif event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+
+def check_head_to_tail_accessibility(snake):
+    """
+    This function checks if the snake's head can reach the snake's tail 
+    without hitting its own body or other obstacles.
+    """
+    visited = [[False for _ in range(30)] for _ in range(30)]  # 30x30 grid
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Possible directions (up, down, left, right)
+    
+    head = snake.body[0]  # Snake's head (starting point)
+    tail = snake.body[-1]  # Snake's tail (goal point)
+    
+    queue = deque([head])  # Initialize BFS queue with the head position
+    visited[head[0]][head[1]] = True  # Mark the head position as visited
+    
+    # Mark snake's body (excluding the head and tail) as visited to avoid crossing over itself
+    for x, y in snake.body[1:-1]:  # Exclude the head and tail from being marked as visited
+        visited[x][y] = True
+
+    # BFS loop to find if a path exists from head to tail
+    while queue:
+        x, y = queue.popleft()
+
+        # If we reach the tail, return True
+        if [x, y] == tail:
+            return True
         
+        # Explore the neighboring cells
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 30 and 0 <= ny < 30 and not visited[nx][ny]:
+                visited[nx][ny] = True
+                queue.append([nx, ny])
+    
+    # If we finish BFS without reaching the tail, return False
+    return False
