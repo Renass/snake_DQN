@@ -99,7 +99,7 @@ if __name__ == '__main__':
                     next_state = gf.get_state(imaginary_snake, apple)
                     memory.push(state, torch.tensor([i]), next_state, reward)
 
-            action_by_cheat, r = gf.imaginary_step(snake, apple, current_depth = LOOK_AHEAD_STEPS, max_depth=LOOK_AHEAD_STEPS, current_return=0, settings=settings, device=DEVICE)
+            action_by_cheat, r, _ = gf.imaginary_step(snake, apple, current_depth = LOOK_AHEAD_STEPS, max_depth=LOOK_AHEAD_STEPS, current_return=0, settings=settings, device=DEVICE)
 
             if CHEAT_DEMO:
                 try:
