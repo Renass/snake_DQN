@@ -5,6 +5,9 @@ import copy
 from collections import deque
 import time
 
+from settings import Settings
+settings = Settings()
+
 
 def run_window(settings):
     pygame.init()
@@ -37,7 +40,7 @@ def check_events(settings,snake,apple,action, imaginary):
                 snake.body.insert(0,[x+1,y])
                 if imaginary == False:
                     apple.new_apple(settings,snake)
-                snake.reward=10
+                snake.reward=1.1
             elif [x+1,y] in snake.body[:-1] or x==settings.field_size[0]-1:
                 snake.dead=True
                 snake.reward=-10
@@ -53,7 +56,7 @@ def check_events(settings,snake,apple,action, imaginary):
                 snake.body.insert(0,[x-1,y])
                 if imaginary==False:
                     apple.new_apple(settings,snake)
-                snake.reward=10
+                snake.reward=1.1
             elif [x-1,y] in snake.body[:-1] or x==0:
                 snake.dead=True
                 snake.reward=-10
@@ -68,7 +71,7 @@ def check_events(settings,snake,apple,action, imaginary):
                 snake.body.insert(0,[x,y-1])
                 if imaginary==False:
                     apple.new_apple(settings,snake)
-                snake.reward=10
+                snake.reward=1.1
             elif [x,y-1] in snake.body[:-1] or y==0:
                 snake.dead=True
                 snake.reward=-10
@@ -83,7 +86,7 @@ def check_events(settings,snake,apple,action, imaginary):
                 snake.body.insert(0,[x,y+1])
                 if imaginary==False:
                     apple.new_apple(settings,snake)
-                snake.reward=10
+                snake.reward=1.1
             elif [x,y+1] in snake.body[:-1] or y==settings.field_size[1]-1:
                 snake.dead=True
                 snake.reward=-10
@@ -154,7 +157,7 @@ class Apple():
 
 
 def get_state(snake,apple):
-    state = torch.zeros((30, 30, 3))
+    state = torch.zeros((settings.field_size[0], settings.field_size[1], 3))
     #Backgroud filed
     state[:, :, 1] = 100
     #Apple
@@ -177,89 +180,46 @@ def imaginary_step(snake, apple, current_depth, max_depth, current_return, setti
     action_by_cheat = None
     current_depth -=1
     max_return = current_return - 100
-    m1= current_return - 100
+    #m1= current_return - 100
     action_reward_acsess = []
-    #print('depth: ', current_depth)
+
     for i in (0,2,1,3):
         imaginary_snake = copy.deepcopy(snake)
-        #print('depth: ', current_depth)
-        #if current_depth==max_depth-1:
-            #print('here1', imaginary_snake.body[0])
         check_events(settings,imaginary_snake,apple,torch.tensor([[i]]).to(device), imaginary=True)
-        #if current_depth==max_depth-1:
-            #print('here2', imaginary_snake.body[0])
         if imaginary_snake.reward > -10:
             current_return1 = current_return + torch.tensor([imaginary_snake.reward],device=device)
-            #print("Before check_head_to_tail_accessibility:", imaginary_snake.body)
-            #tale_acsess = check_head_to_tail_accessibility(imaginary_snake)
-            #print("After check_head_to_tail_accessibility:", imaginary_snake.body)
-
             tale_acsess = check_head_to_tail_accessibility(imaginary_snake)
-            if current_depth==max_depth-2:
-                print('inner tale', tale_acsess)
-            if current_depth==max_depth-1:
-                print('action: ', i, 'Tale acsess: ', tale_acsess)
-            #field_accessible, acsess_part = check_field_acessibility(imaginary_snake)                
-            #print("Before check_field_acessibility:", imaginary_snake.body)
             field_accessible, acsess_part = check_field_acessibility(imaginary_snake)
-            #print("After check_field_acessibility:", imaginary_snake.body)
-
             if (current_depth >0):
                 _, current_return1, tale_acsess = imaginary_step(imaginary_snake, apple, current_depth, max_depth, current_return1, settings=settings, device=device) 
-                #_, current_return1, tale_acsess = imaginary_step(
-                #copy.deepcopy(imaginary_snake), apple, current_depth, max_depth, current_return1, settings=settings, device=device
-                #)
-
-            #if current_depth==max_depth-1:
-                #print('action: ', i, 'Tale acsess: ', tale_acsess)
-
             action_reward_acsess.append((i, current_return1, acsess_part, tale_acsess))
-            if current_depth==max_depth-2:
-                print('inner current retuern', current_return1)
-                print('inner max retuern', max_return)
             if tale_acsess:
-                #if current_depth==max_depth-1:
-                    #print('current return: ', current_return1)
-                    #print('max_return', max_return)
                 if current_return1 > max_return:
                     max_return = current_return1
                     action_by_cheat = i
-            #if current_depth==max_depth-1:
-                #print('here3', imaginary_snake.body)
     if action_by_cheat == None:
         tale_acsess = False
     else:
         tale_acsess = True    
+
     #if (action_by_cheat == None) and (current_depth==max_depth-1):
-    #    print('additional search1: follow the tale')
+    #    print('additional search2: go where more field acsess')
+    #    max_acsess=-1
     #    for item in action_reward_acsess:
-    #        action, reward, _, tale_acsess = item
-    #        print(tale_acsess)
-    #        if tale_acsess:
-    #            if reward > m1:
-    #                m1 = reward
-    #                action_by_cheat = action
+    #        #print(item)
+    #        action, reward, acsess, _ = item
+    #        #print(acsess)
+    #        if acsess > max_acsess:
+    #            max_acsess = acsess
+    #            action_by_cheat = action
+    #    print(max_acsess)
+        #pause_game()
 
-    if (action_by_cheat == None) and (current_depth==max_depth-1):
-        print('additional search2: go where more field acsess')
-        max_acsess=-1
-        for item in action_reward_acsess:
-            #print(item)
-            action, reward, acsess, _ = item
-            #print(acsess)
-            if acsess > max_acsess:
-                max_acsess = acsess
-                action_by_cheat = action
-        print(max_acsess)
-        pause_game()
-
-    #if action_by_cheat == None:
-    #    print('cant choose any action')
     return action_by_cheat, max_return, tale_acsess
 
 
 def check_field_acessibility(snake, target_acsess = 1.0):
-    visited = [[False for _ in range(30)] for _ in range(30)]
+    visited = [[False for _ in range(settings.field_size[0])] for _ in range(settings.field_size[1])]
     accessible_cells = 0
     total_free_cells = 900 - len(snake.body)
     required_accessible_cells = total_free_cells * target_acsess
@@ -281,7 +241,7 @@ def check_field_acessibility(snake, target_acsess = 1.0):
         
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < 30 and 0 <= ny < 30 and not visited[nx][ny]:
+            if 0 <= nx < settings.field_size[0] and 0 <= ny < settings.field_size[1] and not visited[nx][ny]:
                 visited[nx][ny] = True
                 queue.append((nx, ny))
     return accessible_cells >= required_accessible_cells, accessible_cells/total_free_cells
@@ -309,7 +269,7 @@ def check_head_to_tail_accessibility(snake):
     This function checks if the snake's head can reach the snake's tail 
     without hitting its own body or other obstacles.
     """
-    visited = [[False for _ in range(30)] for _ in range(30)]  # 30x30 grid
+    visited = [[False for _ in range(settings.field_size[0])] for _ in range(settings.field_size[1])]  # 30x30 grid
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Possible directions (up, down, left, right)
     
     head = snake.body[0]  # Snake's head (starting point)
@@ -335,7 +295,7 @@ def check_head_to_tail_accessibility(snake):
         # Explore the neighboring cells
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < 30 and 0 <= ny < 30 and not visited[nx][ny]:
+            if 0 <= nx < settings.field_size[0] and 0 <= ny < settings.field_size[1] and not visited[nx][ny]:
                 visited[nx][ny] = True
                 queue.append([nx, ny])
     
